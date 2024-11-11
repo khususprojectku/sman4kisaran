@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Redirect Alternating URLs</title>
+    <script>
+        // Daftar URL yang akan di-redirect secara bergantian
+        const urls = [
+            "https://www.youtube.com/",
+            "https://www.cnnindonesia.com/",
+            "https://www.detik.com/",
+            "https://www.kompas.com/"
+        ];
+
+        // Fungsi untuk mendapatkan URL berikutnya
+        function redirectToNextUrl() {
+            // Ambil indeks terakhir dari localStorage atau mulai dari 0
+            const lastIndex = localStorage.getItem('lastIndex') || -1;
+            const nextIndex = (parseInt(lastIndex) + 1) % urls.length;
+
+            // Simpan indeks yang sekarang
+            localStorage.setItem('lastIndex', nextIndex);
+
+            // Redirect ke URL yang sesuai
+            window.location.href = urls[nextIndex];
+        }
+    </script>
+</head>
+<body onload="redirectToNextUrl()">
+    <h1>Tunggu sebentar...</h1>
+</body>
+</html>
