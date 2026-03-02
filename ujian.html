@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ujian Online Aman</title>
+
+<style>
+body{
+    font-family: Arial, sans-serif;
+    background: linear-gradient(135deg,#667eea,#764ba2);
+    margin:0;
+    color:#333;
+}
+
+.container{
+    max-width:900px;
+    margin:40px auto;
+    background:white;
+    padding:30px;
+    border-radius:15px;
+    box-shadow:0 10px 30px rgba(0,0,0,0.2);
+}
+
+h1{
+    text-align:center;
+}
+
+.timer{
+    font-size:24px;
+    font-weight:bold;
+    color:red;
+    text-align:center;
+    margin-bottom:20px;
+}
+
+.question{
+    margin-bottom:20px;
+    padding:15px;
+    border-radius:10px;
+    background:#f5f5f5;
+}
+
+button{
+    padding:12px 25px;
+    border:none;
+    border-radius:10px;
+    background:#667eea;
+    color:white;
+    font-size:16px;
+    cursor:pointer;
+}
+
+button:hover{
+    background:#5563d6;
+}
+
+.warning{
+    color:red;
+    font-weight:bold;
+    text-align:center;
+    margin-bottom:10px;
+}
+
+#startScreen{
+    text-align:center;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<div id="startScreen">
+    <h1>🛡️ Ujian Online</h1>
+    <p>Peraturan:</p>
+    <ul style="text-align:left">
+        <li>Dilarang pindah tab</li>
+        <li>Dilarang keluar fullscreen</li>
+        <li>Ujian akan otomatis submit jika melanggar</li>
+    </ul>
+    <button onclick="startExam()">Mulai Ujian</button>
+</div>
+
+<div id="examScreen" style="display:none">
+
+    <div class="timer" id="timer">10:00</div>
+    <div class="warning" id="warning"></div>
+
+    <form id="examForm"></form>
+
+    <div style="text-align:center;margin-top:20px">
+        <button onclick="submitExam()">Kumpulkan</button>
+    </div>
+</div>
+
+<div id="resultScreen" style="display:none;text-align:center">
+    <h2>✅ Ujian Selesai</h2>
+    <p id="scoreText"></p>
+    <p id="violationText"></p>
+</div>
+
+</div>
+
+<script>
+// ============================
+// BANK SOAL (acak otomatis)
+// ============================
+const questions = [
+{
+    q:"Ibukota Indonesia adalah?",
+    options:["Bandung","Jakarta","Surabaya","Medan"],
+    answer:1
+},
+{
+    q:"2 + 5 = ?",
+    options:["5","6","7","8"],
+    answer:2
+},
+{
+    q:"Bahasa pemrograman web?",
+    options:["HTML","Photoshop","Excel","Word"],
+    answer:0
+}
+];
+
+// ============================
+// VAR GLOBAL
+// ============================
+let timeLeft = 600;
+let violations = 0;
+let maxViolations = 3;
+let timerInterval;
+
+// ============================
+// MULAI UJIAN
+// ============================
+function startExam(){
+    document.getElementById("startScreen").style.display="none";
+    document.getElementById("examScreen").style.display="block";
+
+    enterFullscreen();
+    shuffleQuestions();
+    renderQuestions();
+    startTimer();
+}
+
+// ============================
+// FULLSCREEN PAKSA
+// ============================
+function enterFullscreen(){
+    document.documentElement.requestFullscreen();
+}
+
+document.addEventListener("fullscreenchange", () => {
+    if(!document.fullscreenElement){
+        addViolation("Keluar dari fullscreen!");
+    }
+});
+
+// ============================
+// DETEKSI PINDAH TAB
+// ============================
+document.addEventListener("visibilitychange", () => {
+    if(document.hidden){
+        addViolation("Pindah tab terdeteksi!");
+    }
+});
+
+// ============================
+// BLOK COPY PASTE
+// ============================
+document.addEventListener("copy", e=>e.preventDefault());
+document.addEventListener("paste", e=>e.preventDefault());
+document.addEventListener("contextmenu", e=>e.preventDefault());
+
+// ============================
+// HITUNG PELANGGARAN
+// ============================
+function addViolation(msg){
+    violations++;
+    document.getElementById("warning").innerText =
+        msg + " ("+violations+"/"+maxViolations+")";
+
+    if(violations >= maxViolations){
+        alert("Terlalu banyak pelanggaran!");
+        submitExam();
+    }
+}
+
+// ============================
+// TIMER
+// ============================
+function startTimer(){
+    timerInterval = setInterval(()=>{
+        timeLeft--;
+        let m = Math.floor(timeLeft/60);
+        let s = timeLeft%60;
+        document.getElementById("timer").innerText =
+            `${m}:${s.toString().padStart(2,'0')}`;
+
+        if(timeLeft<=0){
+            submitExam();
+        }
+    },1000);
+}
+
+// ============================
+// ACAK SOAL
+// ============================
+function shuffleQuestions(){
+    questions.sort(()=>Math.random()-0.5);
+}
+
+// ============================
+// RENDER SOAL
+// ============================
+function renderQuestions(){
+    const form = document.getElementById("examForm");
+    form.innerHTML="";
+
+    questions.forEach((item,index)=>{
+        let html = `
+        <div class="question">
+            <b>${index+1}. ${item.q}</b><br>
+        `;
+        item.options.forEach((opt,i)=>{
+            html += `
+            <label>
+                <input type="radio" name="q${index}" value="${i}">
+                ${opt}
+            </label><br>`;
+        });
+        html += "</div>";
+        form.innerHTML += html;
+    });
+}
+
+// ============================
+// SUBMIT
+// ============================
+function submitExam(){
+    clearInterval(timerInterval);
+
+    let score = 0;
+    questions.forEach((q,i)=>{
+        let ans = document.querySelector(`input[name=q${i}]:checked`);
+        if(ans && parseInt(ans.value)===q.answer){
+            score++;
+        }
+    });
+
+    document.getElementById("examScreen").style.display="none";
+    document.getElementById("resultScreen").style.display="block";
+
+    document.getElementById("scoreText").innerText =
+        "Skor: "+score+" / "+questions.length;
+
+    document.getElementById("violationText").innerText =
+        "Pelanggaran: "+violations;
+}
+</script>
+
+</body>
+</html>
